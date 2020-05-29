@@ -1,0 +1,130 @@
+<!--
+ * @Author: your name
+ * @Date: 2020-05-29 20:15:36
+ * @LastEditTime: 2020-05-29 23:29:10
+ * @LastEditors: Please set LastEditors
+ * @Description: In User Settings Edit
+ * @FilePath: \home\vue源码学习\vue-ctr.html
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        <div>
+            <p>{{message}}--{{message}}</p>
+        </div>
+        <div>{{name}}</div>
+        <div>{{message}}</div>
+        <div>{{person.name.fristName}}--{{person.name.lastName}}</div>
+    </div>
+
+    <script>
+        //构建一个vue小框架
+
+        function compiler(template, data) {
+
+            let regKH = /\{\{(.+?)\}\}/g;  //正则不能有引号
+            let childNodes = template.childNodes; //获取所有子节点
+            //遍历子节点
+            for (let i = 0; i < childNodes.length; i++) {
+                let type = childNodes[i].nodeType;  //子节点类型
+                if (type == 3) {  //说明是文本节点
+                    let txt = childNodes[i].nodeValue; //获取元素节点的文本节点 //非文本节点不起作用
+
+                    //g0, g1 表示第0，1个元素
+                    txt = txt.replace(regKH, function (g0, g1) {  //只要匹配到文本，后面的函数就会执行一次
+                        //注意replace回调函数里的第0个参数（g0）表示匹配的内容
+                        //注意replace回调函数里的第n个参数（gn）表示正则中的第n组
+
+                        // console.log(g1);
+                        let key = g1.trim();
+                        // let value = data[key];
+                        //函数颗粒化
+                        let getValueByPath = createGetValueByPath(key);
+                        let value = getValueByPath(data);
+                        return value;
+                    });
+                    //注意，txt与dom没有关系
+                    childNodes[i].nodeValue = txt;  //用txt修改原文本节点
+
+                } else if (type == 1) {
+                    compiler(childNodes[i], data);
+                }
+            }
+        }
+
+        function createGetValueByPath(path) {
+            let paths = path.split(".");
+            //函数颗粒化
+            return function getValueByPath(obj) {
+                let res = obj;
+                let p = null;
+                while (p = paths.shift()) { //取出数组中的第一个元素
+                    res = res[p];
+                }
+                return res;
+            }
+
+
+        }
+
+        class JGVue {
+            constructor(options) {
+                this._data = options.data;
+                this._el = options.el;
+
+                //准备工作
+                this._templteDOM = document.querySelector(this._el);
+                this._parent = this._templteDOM.parentNode;
+
+                this.render();
+            }
+        }
+
+        //创建一个渲染器
+        JGVue.prototype.render = function () {
+            this.compiler();
+        }
+
+        //编译， 将模板与数据结合，得到真正的dom元素
+        JGVue.prototype.compiler = function () {
+
+            compiler(this._templteDOM, this._data);
+            this.update(this._templteDOM);
+        }
+
+        // 将dom元素放到html页面中
+        JGVue.prototype.update = function (real) {
+            this._parent.replaceChild(real, document.querySelector("#app"));
+
+        }
+
+
+
+        new JGVue({
+            el: "#app",
+            data: {
+                name: "张三",
+                message: "hello like vue",
+                person: {
+                    name: {
+                        fristName: "zhang",
+                        lastName: "san"
+                    }
+                }
+            }
+        });
+
+    </script>
+
+</body>
+
+</html>
